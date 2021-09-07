@@ -15,3 +15,6 @@ const char* passwordValue = "пароль wifi сети";
 const char* nameDeviceValue = "название устройства для прошивки по wifi";  
 const char* passDeviceValue = "пароль для прошивки по wifi";  
 ```
+
+### Схема системы
+![Схема](https://github.com/HoriFox/SmartHomeCentralDoc/blob/main/gitimg/system.png)
