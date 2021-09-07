@@ -1,3 +1,4 @@
+
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
@@ -26,14 +27,15 @@ const char* password = passwordValue;
 DHT dht(DHTPIN, DHTTYPE);                               // Инициализируем датчик
 ESP8266WebServer server(80);
 
-int tempErrBias = 10;
-int humiErrBias = 15;
+int tempErrBias = 0;
+int humiErrBias = 0;
 boolean pirActive = false;
 String callbackAddress = "null";
 
 int addressCountRestart = 0;
 int addressTempErr = 2;
 int addressHumiErr = 4;
+int addressCallbackAddress = 6;
 
 void update() {
   int activeStatus = digitalRead(0);
@@ -51,6 +53,8 @@ void serverRoot() {
 
 void registrationPage() {
   callbackAddress = server.client().remoteIP().toString();
+  EEPROM.write(addressCallbackAddress, 2);
+  EEPROM.commit();
   server.send(200, "text/plain", "Successfully set callback to: " + callbackAddress);
 }
 
@@ -73,7 +77,6 @@ void settingPage() {
       EEPROM.commit();
       message += "\nhumi err bias set " + String(value) + "\n";
   }
-  callbackAddress = server.client().remoteIP().toString();
   server.send(200, "text/plain", message);
 }
 
@@ -81,13 +84,15 @@ void infoPage() {
   float temperature = dht.readTemperature() - tempErrBias;        // Запрос на считывание температуры
   float humidity = dht.readHumidity() - humiErrBias;
   
-  String message = "{\n";
-  message += "  \"temperature\": " + String(temperature) + ",\n";
-  message += "  \"temperature_err_mody\": " + String(tempErrBias) + ",\n";
-  message += "  \"humidity\": " + String(humidity) + ",\n"; 
-  message += "  \"humidity_err_mody\": " + String(humiErrBias) + ",\n";
-  message += "  \"pir_artive\": " + String(pirActive) + ",\n";
-  message += "  \"callback\": " + callbackAddress + ",\n";
+  String message = "{";
+  message += "\"temperature\": \"" + String(temperature) + "\",";
+  message += "\"temperature_err_mody\": \"" + String(tempErrBias) + "\",";
+  message += "\"humidity\": \"" + String(humidity) + "\","; 
+  message += "\"humidity_err_mody\": \"" + String(humiErrBias) + "\",";
+  message += "\"pir_artive\": \"" + String(pirActive) + "\",";
+  message += "\"callback\": \"" + callbackAddress + "\",";
+  message += "\"flashChipSize\": \"" + String(ESP.getFlashChipSize()) + "\",";
+  message += "\"real\": \"" + String(ESP.getFlashChipRealSize()) + "\"";
   message += "}";
   server.send(200, "application/json", message);
 }
@@ -152,6 +157,8 @@ void setup(void) {
   if(tempErrBiasEep != '\0') tempErrBias = tempErrBiasEep;
   int humiErrBiasEep = EEPROM.read(addressHumiErr);
   if(humiErrBiasEep != '\0') humiErrBias = humiErrBiasEep;
+  int callbackAddressData = EEPROM.read(addressCallbackAddress);
+  if(callbackAddressData != '\0') callbackAddress = callbackAddressData;
   EEPROM.write(addressCountRestart, countReboot + 1); // Записываем в память количество перезапусков модуля
   EEPROM.commit(); // Сохраняем в памяти
 }
